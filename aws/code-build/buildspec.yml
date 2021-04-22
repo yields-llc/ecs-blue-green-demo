@@ -15,6 +15,9 @@ phases:
   build:
     commands:
       - echo Build started on `date`
+      - echo composer install
+      - cp $PWD/app/.env.example $PWD/app/.env
+      - docker run --rm --volume $PWD/app:/app composer:1.10.16 install --no-dev
       - echo Building the Docker image...
       - docker build -t ${REPOSITORY_URI_PHP_FPM}:latest -f aws/ecs/app-service/php-fpm/Dockerfile .
       - docker build -t ${REPOSITORY_URI_NGINX}:latest -f aws/ecs/app-service/nginx/Dockerfile .
