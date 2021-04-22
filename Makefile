@@ -1,5 +1,5 @@
 stack-family=ecs-blue-green-demo
-github-owner=imunew
+github-owner=yields-llc
 
 deploy-vpc-subnet:
 	aws --profile $(profile) cloudformation deploy \

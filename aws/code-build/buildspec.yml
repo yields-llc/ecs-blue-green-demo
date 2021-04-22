@@ -1,9 +1,5 @@
 version: 0.2
 
-env:
-  DOCKERHUB_USERNAME: "yieldsllc"
-  DOCKERHUB_PASSWORD: "cLf+#-m&v7C^?cw"
-
 phases:
   pre_build:
     commands:
@@ -11,7 +7,7 @@ phases:
       - aws --version
       - aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
       - echo Logging in to Docker Hub...
-      - echo ${DOCKERHUB_PASSWORD} | docker login -u ${DOCKERHUB_USERNAME} --password-stdin
+      - echo "yieldsllc" | docker login -u "cLf+#-m&v7C^?cw" --password-stdin
       - IMAGE_NAME_PHP_FPM=php-fpm
       - IMAGE_NAME_NGINX=nginx
       - REPOSITORY_URI_PHP_FPM=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${PROJECT_NAMESPACE}/${IMAGE_NAME_PHP_FPM}
