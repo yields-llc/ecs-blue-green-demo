@@ -10,3 +10,6 @@ ADD ./app /var/www/app
 ADD ./aws/ecs/app-service/php-fpm/etc/zz-www.conf /usr/local/etc/php-fpm.d/zz-www.conf
 
 WORKDIR /var/www/app
+
+# Add Permissions
+RUN chmod -R a+w storage/ bootstrap/cache
