@@ -152,3 +152,37 @@ cache-deploy-role-arn: cache-account-id cache-deploy-role-name
 	$(eval account-id := $(shell cat .cache/account-id.txt))
 	$(eval deploy-role := $(shell cat .cache/deploy-role-name.txt))
 	echo 'arn:aws:iam::$(account-id):role/$(deploy-role)' > .cache/deploy-role-arn.txt
+
+# task-scheduler
+
+deploy-task-scheduler-ecs-ecr:
+	aws --profile $(profile) cloudformation deploy \
+		--template ./aws/cloud-formation/task-scheduler/ecs-ecr.yml \
+		--stack-name $(stack-family)-task-scheduler-ecs-ecr \
+		--parameter-overrides StackFamily=$(stack-family) \
+		--capabilities CAPABILITY_IAM \
+		--no-fail-on-empty-changeset
+
+deploy-task-scheduler-ecs-service:
+	aws --profile $(profile) cloudformation deploy \
+		--template ./aws/cloud-formation/task-scheduler/ecs-service.yml \
+		--stack-name $(stack-family)-task-scheduler-ecs-service \
+		--parameter-overrides StackFamily=$(stack-family) \
+		--capabilities CAPABILITY_NAMED_IAM \
+		--no-fail-on-empty-changeset
+
+push-task-scheduler-docker-images: cache-account-id cache-region
+	$(eval account-id := $(shell cat .cache/account-id.txt))
+	$(eval region := $(shell cat .cache/region.txt))
+	aws --profile $(profile) ecr get-login-password --region $(region) | docker login --username AWS --password-stdin $(account-id).dkr.ecr.$(region).amazonaws.com
+	docker build -t $(stack-family)/task-scheduler -f aws/ecs/task-scheduler/Dockerfile .
+	docker tag $(stack-family)/task-scheduler:latest $(account-id).dkr.ecr.$(region).amazonaws.com/$(stack-family)/task-scheduler:latest
+	docker push $(account-id).dkr.ecr.$(region).amazonaws.com/$(stack-family)/task-scheduler:latest
+
+deploy-task-scheduler-code-pipeline:
+	aws --profile $(profile) cloudformation deploy \
+		--template ./aws/cloud-formation/task-scheduler/code-pipeline.yml \
+		--stack-name $(stack-family)-task-scheduler-code-pipeline \
+		--parameter-overrides StackFamily=$(stack-family) GitHubOwner=$(github-owner) \
+		--capabilities CAPABILITY_NAMED_IAM \
+		--no-fail-on-empty-changeset

@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  StackFamily:
+    Type: String
+    Default: ecs-blue-green-demo
+
+Resources:
+  EcrTaskScheduler:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${StackFamily}/task-scheduler"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Delete more than 20 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 20
+                },
+                "action": {
+                  "type": "expire"
+                }
+              }
+            ]
+          }
+
+Outputs:
+  EcrNginx:
+    Value: !Ref EcrTaskScheduler
+    Export:
+      Name: !Sub "${StackFamily}-ecr-task-scheduler"

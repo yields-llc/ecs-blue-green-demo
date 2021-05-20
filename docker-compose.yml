@@ -22,5 +22,13 @@ services:
     depends_on:
       - php-fpm
 
+  task-scheduler:
+    build:
+      context: .
+      dockerfile: ./local/docker/task-scheduler/Dockerfile
+    volumes:
+      - ./app:/app:cached
+    working_dir: /app
+
 volumes:
   uds:
