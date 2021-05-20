@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  StackFamily:
+    Type: String
+    Default: ecs-blue-green-demo
+  TaskMemory:
+    Type: Number
+    Default: 1024
+  TaskSchedulerMemory:
+    Type: Number
+    Default: 1024
+  EcsDesiredCount:
+    Type: Number
+    Default: 1
+  ECSCpu:
+    Type: Number
+    Default: 512
+  EcsScheduleRuleName:
+    Type: String
+    Default: RunScheduledTask
+  EcsScheduleTargetId:
+    Type: String
+    Default: RunScheduledTask
+
+Resources:
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "${StackFamily}-task-scheduler"
+      RetentionInDays: 14
+
+  EcsTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${StackFamily}-task-scheduler"
+      Memory: !Ref TaskMemory
+      ExecutionRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${StackFamily}-ecs-execution"
+      TaskRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${StackFamily}-ecs-task"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: !Ref ECSCpu
+      ContainerDefinitions:
+        - Name: task-scheduler
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${StackFamily}/task-scheduler:latest"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+          Ulimits:
+            - Name: nofile
+              SoftLimit: 65536
+              HardLimit: 65536
+          Memory: !Ref TaskSchedulerMemory
+
+  EcsEventsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "events.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: PassRole
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource: '*'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceEventsRole
+      RoleName: !Sub "${StackFamily}-ecs-events"
+
+  EcsSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: ENABLED
+      ScheduleExpression: cron(* * * * ? *)
+      Name: !Ref EcsScheduleRuleName
+      Targets:
+        - Id: !Ref EcsScheduleTargetId
+          Arn: !Sub
+            - "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${EcsCluster}"
+            - EcsCluster:
+                Fn::ImportValue:
+                  !Sub "${StackFamily}-ecs-cluster"
+          RoleArn: !GetAtt EcsEventsRole.Arn
+          EcsParameters:
+            TaskDefinitionArn: !Ref EcsTaskDefinition
+            TaskCount: !Ref EcsDesiredCount
+            LaunchType: FARGATE
+            PlatformVersion: LATEST
+            NetworkConfiguration:
+              AwsVpcConfiguration:
+                AssignPublicIp: DISABLED
+                SecurityGroups:
+                  - Fn::ImportValue:
+                      !Sub "${StackFamily}-app-sg"
+                Subnets:
+                  - Fn::ImportValue:
+                      !Sub "${StackFamily}-private-subnet-1a"
+                  - Fn::ImportValue:
+                      !Sub "${StackFamily}-private-subnet-1d"
