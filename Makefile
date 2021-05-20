@@ -178,3 +178,11 @@ push-task-scheduler-docker-images: cache-account-id cache-region
 	docker build -t $(stack-family)/task-scheduler -f aws/ecs/task-scheduler/Dockerfile .
 	docker tag $(stack-family)/task-scheduler:latest $(account-id).dkr.ecr.$(region).amazonaws.com/$(stack-family)/task-scheduler:latest
 	docker push $(account-id).dkr.ecr.$(region).amazonaws.com/$(stack-family)/task-scheduler:latest
+
+deploy-task-scheduler-code-pipeline:
+	aws --profile $(profile) cloudformation deploy \
+		--template ./aws/cloud-formation/task-scheduler/code-pipeline.yml \
+		--stack-name $(stack-family)-task-scheduler-code-pipeline \
+		--parameter-overrides StackFamily=$(stack-family) GitHubOwner=$(github-owner) \
+		--capabilities CAPABILITY_NAMED_IAM \
+		--no-fail-on-empty-changeset

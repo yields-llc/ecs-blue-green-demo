@@ -1,0 +1,36 @@
+version: 0.2
+
+env:
+  secrets-manager:
+    DOCKER_USERNAME: "ecs-blue-green-demo-secrets-docker:username"
+    DOCKER_PASSWORD: "ecs-blue-green-demo-secrets-docker:access-token"
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws --version
+      - aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
+      - echo Logging in to Docker Hub...
+      - echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin
+      - IMAGE_NAME_TASK_SCHEDULER=task-scheduler
+      - REPOSITORY_URI_TASK_SCHEDULER=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${PROJECT_NAMESPACE}/${IMAGE_NAME_TASK_SCHEDULER}
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=${COMMIT_HASH:=latest}
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo composer install
+      - cp $PWD/app/.env.example $PWD/app/.env
+      - docker run --rm --volume $PWD/app:/app composer:1.10.16 install --no-dev
+      - echo Building the Docker image...
+      - docker build -t ${REPOSITORY_URI_TASK_SCHEDULER}:latest -f aws/ecs/task-scheduler/Dockerfile .
+      - docker tag ${REPOSITORY_URI_TASK_SCHEDULER}:latest ${REPOSITORY_URI_TASK_SCHEDULER}:$IMAGE_TAG
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker images...
+      - docker push ${REPOSITORY_URI_TASK_SCHEDULER}:latest
+      - docker push ${REPOSITORY_URI_TASK_SCHEDULER}:$IMAGE_TAG
+      - cat aws/ecs/task-scheduler/taskdef.json | sed -e "s/<PROJECT_NAMESPACE>/${PROJECT_NAMESPACE}/g" -e "s/<AWS_ACCOUNT_ID>/${AWS_ACCOUNT_ID}/g" -e "s/<AWS_REGION>/${AWS_DEFAULT_REGION}/g" -e "s/<IMAGE_TAG>/${IMAGE_TAG}/g" > taskdef.json
+      - aws ecs register-task-definition --cli-input-json file://taskdef.json
