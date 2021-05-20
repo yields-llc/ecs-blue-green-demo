@@ -40,7 +40,7 @@ phases:
       - docker push ${REPOSITORY_URI_NGINX}:$IMAGE_TAG
       - echo Writing image definitions file...
       - cp aws/code-deploy/appspec.yml appspec.yml
-      - cat aws/ecs/app-service/taskdef.json | sed -e "s/<AWS_ACCOUNT_ID>/${AWS_ACCOUNT_ID}/g" -e "s/<AWS_REGION>/${AWS_DEFAULT_REGION}/g" -e "s/<IMAGE_TAG>/${IMAGE_TAG}/g" > taskdef.json
+      - cat aws/ecs/app-service/taskdef.json | sed -e "s/<PROJECT_NAMESPACE>/${PROJECT_NAMESPACE}/g" -e "s/<AWS_ACCOUNT_ID>/${AWS_ACCOUNT_ID}/g" -e "s/<AWS_REGION>/${AWS_DEFAULT_REGION}/g" -e "s/<IMAGE_TAG>/${IMAGE_TAG}/g" > taskdef.json
 artifacts:
   files:
     - appspec.yml

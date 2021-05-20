@@ -37,7 +37,7 @@ class Hello extends Command
      */
     public function handle()
     {
-        $this->output->writeLn('Hello !!');
+        $this->output->writeLn('Hello world!!');
         return 0;
     }
 }
