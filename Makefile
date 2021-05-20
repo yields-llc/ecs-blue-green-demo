@@ -186,3 +186,53 @@ deploy-task-scheduler-code-pipeline:
 		--parameter-overrides StackFamily=$(stack-family) GitHubOwner=$(github-owner) \
 		--capabilities CAPABILITY_NAMED_IAM \
 		--no-fail-on-empty-changeset
+
+# Misc
+
+stop-all:
+	make stop-ecs-task-scheduler profile=$(profile)
+	make stop-ecs-services profile=$(profile)
+	make stop-nat-instances profile=$(profile)
+
+stop-ecs-task-scheduler:
+	aws --profile $(profile) events disable-rule --name RunScheduledTask
+
+stop-ecs-services:
+	aws --profile $(profile) ecs update-service \
+		--cluster $(stack-family) \
+		--service $(stack-family)-app \
+		--desired-count 0 \
+		--query 'service.{ desiredCount: desiredCount, runningCount: runningCount, pendingCount: pendingCount }'
+
+stop-nat-instances: cache-nat-instance-ids
+	$(eval nat-instance-ids := $(shell cat .cache/nat-instance-ids.txt))
+	aws --profile $(profile) ec2 stop-instances \
+		--instance-ids $(nat-instance-ids) \
+		--query 'StoppingInstances[].InstanceId'
+
+start-all:
+	make start-nat-instances profile=$(profile)
+	make start-ecs-services profile=$(profile)
+	make start-ecs-task-scheduler profile=$(profile)
+
+start-ecs-task-scheduler:
+	aws --profile $(profile) events enable-rule --name RunScheduledTask
+
+start-ecs-services:
+	aws --profile $(profile) ecs update-service \
+		--cluster $(stack-family) \
+		--service $(stack-family)-app \
+		--desired-count 1 \
+		--query 'service.{ desiredCount: desiredCount, runningCount: runningCount, pendingCount: pendingCount }'
+
+start-nat-instances: cache-nat-instance-ids
+	$(eval nat-instance-ids := $(shell cat .cache/nat-instance-ids.txt))
+	aws --profile $(profile) ec2 start-instances \
+		--instance-ids $(nat-instance-ids) \
+		--query 'StartingInstances[].InstanceId'
+
+cache-nat-instance-ids:
+	aws --profile $(profile) ec2 describe-instances \
+		--filter Name=tag:Group,Values=NAT \
+		--query 'Reservations[].Instances[].InstanceId' \
+		 | tr -d '" [],' > .cache/nat-instance-ids.txt
