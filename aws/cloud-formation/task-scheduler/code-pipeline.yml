@@ -90,6 +90,8 @@ Resources:
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
+                  - events:ListTargetsByRule
+                  - events:PutTargets
                 Resource: '*'
 
   BuildProject:
