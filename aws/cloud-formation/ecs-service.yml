@@ -60,6 +60,27 @@ Resources:
             Action:
               - "sts:AssumeRole"
       Path: "/"
+      Policies:
+        -
+          PolicyName: SQSQueue
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sqs:ChangeMessageVisibility
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                  - sqs:GetQueueUrl
+                  - sqs:ListQueues
+                  - sqs:ListQueueTags
+                  - sqs:ReceiveMessage
+                  - sqs:SendMessage
+                  - sqs:SetQueueAttributes
+                  - sqs:TagQueue
+                  - sqs:UntagQueue
+                Resource:
+                  - !Sub "arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${StackFamily}-queue"
       RoleName: !Sub "${StackFamily}-ecs-task"
 
   TaskDefinition:
