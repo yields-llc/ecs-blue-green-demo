@@ -34,4 +34,4 @@ phases:
       - docker push ${REPOSITORY_URI_QUEUE_WORKER}:$IMAGE_TAG
       - cat aws/ecs/queue-worker/taskdef.json | sed -e "s/<PROJECT_NAMESPACE>/${PROJECT_NAMESPACE}/g" -e "s/<AWS_ACCOUNT_ID>/${AWS_ACCOUNT_ID}/g" -e "s/<AWS_REGION>/${AWS_DEFAULT_REGION}/g" -e "s/<IMAGE_TAG>/${IMAGE_TAG}/g" > taskdef.json
       - aws ecs register-task-definition --cli-input-json file://taskdef.json
-      - aws ecs update-service --cluster ${PROJECT_NAMESPACE}-ecs-cluster --service ${PROJECT_NAMESPACE}-queue-worker --force-new-deployment
+      - aws ecs update-service --cluster ${PROJECT_NAMESPACE} --service ${PROJECT_NAMESPACE}-queue-worker --force-new-deployment
