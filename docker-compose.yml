@@ -30,5 +30,13 @@ services:
       - ./app:/app:cached
     working_dir: /app
 
+  queue-worker:
+    build:
+      context: .
+      dockerfile: ./local/docker/queue-worker/Dockerfile
+    volumes:
+      - ./app:/app:cached
+    working_dir: /app
+
 volumes:
   uds:
