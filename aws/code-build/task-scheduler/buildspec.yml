@@ -34,3 +34,5 @@ phases:
       - docker push ${REPOSITORY_URI_TASK_SCHEDULER}:$IMAGE_TAG
       - cat aws/ecs/task-scheduler/taskdef.json | sed -e "s/<PROJECT_NAMESPACE>/${PROJECT_NAMESPACE}/g" -e "s/<AWS_ACCOUNT_ID>/${AWS_ACCOUNT_ID}/g" -e "s/<AWS_REGION>/${AWS_DEFAULT_REGION}/g" -e "s/<IMAGE_TAG>/${IMAGE_TAG}/g" > taskdef.json
       - aws ecs register-task-definition --cli-input-json file://taskdef.json
+      - aws events list-targets-by-rule --rule RunScheduledTask --query 'Targets' | sed -e "s/\(:task\-definition\/[a-z\-]*\):*[0-9]*/\1/g" > targets.json
+      - aws events put-target --rule RunScheduledTask --target file://targets.json

@@ -246,6 +246,11 @@ stop-ecs-services:
 		--service $(stack-family)-app \
 		--desired-count 0 \
 		--query 'service.{ desiredCount: desiredCount, runningCount: runningCount, pendingCount: pendingCount }'
+	aws --profile $(profile) ecs update-service \
+		--cluster $(stack-family) \
+		--service $(stack-family)-queue-worker \
+		--desired-count 0 \
+		--query 'service.{ desiredCount: desiredCount, runningCount: runningCount, pendingCount: pendingCount }'
 
 stop-nat-instances: cache-nat-instance-ids
 	$(eval nat-instance-ids := $(shell cat .cache/nat-instance-ids.txt))
@@ -265,6 +270,11 @@ start-ecs-services:
 	aws --profile $(profile) ecs update-service \
 		--cluster $(stack-family) \
 		--service $(stack-family)-app \
+		--desired-count 1 \
+		--query 'service.{ desiredCount: desiredCount, runningCount: runningCount, pendingCount: pendingCount }'
+	aws --profile $(profile) ecs update-service \
+		--cluster $(stack-family) \
+		--service $(stack-family)-queue-worker \
 		--desired-count 1 \
 		--query 'service.{ desiredCount: desiredCount, runningCount: runningCount, pendingCount: pendingCount }'
 
