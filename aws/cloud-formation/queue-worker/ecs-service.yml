@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  StackFamily:
+    Type: String
+    Default: ecs-blue-green-demo
+  EcsDesiredCount:
+    Type: Number
+    Default: 1
+  EcsCpu:
+    Type: Number
+    Default: 512
+  TaskMemory:
+    Type: Number
+    Default: 1024
+  QueueWorkerMemory:
+    Type: Number
+    Default: 1024
+
+Resources:
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "${StackFamily}-queue-worker"
+      RetentionInDays: 14
+
+  ECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${StackFamily}-queue-worker"
+      Memory: !Ref TaskMemory
+      ExecutionRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${StackFamily}-ecs-execution"
+      TaskRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${StackFamily}-ecs-task"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: !Ref EcsCpu
+      ContainerDefinitions:
+        - Name: queue-worker
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${StackFamily}/queue-worker:latest"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+          Ulimits:
+            - Name: nofile
+              SoftLimit: 65536
+              HardLimit: 65536
+          Memory: !Ref QueueWorkerMemory
+
+  ECSService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster:
+        Fn::ImportValue:
+          !Sub "${StackFamily}-ecs-cluster"
+      LaunchType: FARGATE
+      TaskDefinition: !Ref ECSTaskDefinition
+      DesiredCount: !Ref EcsDesiredCount
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            - Fn::ImportValue:
+                !Sub "${StackFamily}-private-subnet-1a"
+            - Fn::ImportValue:
+                !Sub "${StackFamily}-private-subnet-1d"
+          SecurityGroups:
+            - Fn::ImportValue:
+                !Sub "${StackFamily}-app-sg"
+      ServiceName: !Sub "${StackFamily}-queue-worker"

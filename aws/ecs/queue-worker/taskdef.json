@@ -1,0 +1,38 @@
+{
+  "family": "<PROJECT_NAMESPACE>-queue-worker",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "512",
+  "memory": "1024",
+  "networkMode": "awsvpc",
+  "executionRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/<PROJECT_NAMESPACE>-ecs-execution",
+  "taskRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/<PROJECT_NAMESPACE>-ecs-task",
+  "containerDefinitions": [
+    {
+      "name": "queue-worker",
+      "image": "<AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/<PROJECT_NAMESPACE>/queue-worker:<IMAGE_TAG>",
+      "essential": true,
+      "ulimits": [
+        {
+          "name": "nofile",
+          "softLimit": 65536,
+          "hardLimit": 65536
+        }
+      ],
+      "memory": 1024,
+      "environment": [
+      ],
+      "secrets": [
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "<PROJECT_NAMESPACE>-queue-worker",
+          "awslogs-region": "<AWS_REGION>",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

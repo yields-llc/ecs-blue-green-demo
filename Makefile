@@ -187,6 +187,41 @@ deploy-task-scheduler-code-pipeline:
 		--capabilities CAPABILITY_NAMED_IAM \
 		--no-fail-on-empty-changeset
 
+# queue-worker
+
+deploy-queue-worker-ecs-ecr:
+	aws --profile $(profile) cloudformation deploy \
+		--template ./aws/cloud-formation/queue-worker/ecs-ecr.yml \
+		--stack-name $(stack-family)-queue-worker-ecs-ecr \
+		--parameter-overrides StackFamily=$(stack-family) \
+		--capabilities CAPABILITY_IAM \
+		--no-fail-on-empty-changeset
+
+deploy-queue-worker-ecs-service:
+	aws --profile $(profile) cloudformation deploy \
+		--template ./aws/cloud-formation/queue-worker/ecs-service.yml \
+		--stack-name $(stack-family)-queue-worker-ecs-service \
+		--parameter-overrides StackFamily=$(stack-family) \
+		--capabilities CAPABILITY_NAMED_IAM \
+		--no-fail-on-empty-changeset
+
+push-queue-worker-docker-images: cache-account-id cache-region
+	$(eval account-id := $(shell cat .cache/account-id.txt))
+	$(eval region := $(shell cat .cache/region.txt))
+	aws --profile $(profile) ecr get-login-password --region $(region) | docker login --username AWS --password-stdin $(account-id).dkr.ecr.$(region).amazonaws.com
+	docker build -t $(stack-family)/queue-worker -f aws/ecs/queue-worker/Dockerfile .
+	docker tag $(stack-family)/queue-worker:latest $(account-id).dkr.ecr.$(region).amazonaws.com/$(stack-family)/queue-worker:latest
+	docker push $(account-id).dkr.ecr.$(region).amazonaws.com/$(stack-family)/queue-worker:latest
+
+deploy-queue-worker-code-pipeline:
+	aws --profile $(profile) cloudformation deploy \
+		--template ./aws/cloud-formation/queue-worker/code-pipeline.yml \
+		--stack-name $(stack-family)-queue-worker-code-pipeline \
+		--parameter-overrides StackFamily=$(stack-family) GitHubOwner=$(github-owner) \
+		--capabilities CAPABILITY_NAMED_IAM \
+		--no-fail-on-empty-changeset
+
+
 # Misc
 
 stop-all:
