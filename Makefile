@@ -221,6 +221,14 @@ deploy-queue-worker-code-pipeline:
 		--capabilities CAPABILITY_NAMED_IAM \
 		--no-fail-on-empty-changeset
 
+deploy-queue-worker-sqs:
+	aws --profile $(profile) cloudformation deploy \
+		--template ./aws/cloud-formation/queue-worker/sqs.yml \
+		--stack-name $(stack-family)-queue-worker-sqs \
+		--parameter-overrides StackFamily=$(stack-family) \
+		--capabilities CAPABILITY_IAM \
+		--no-fail-on-empty-changeset
+
 
 # Misc
 

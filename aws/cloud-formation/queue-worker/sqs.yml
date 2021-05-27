@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  StackFamily:
+    Type: String
+    Default: ecs-blue-green-demo
+
+Resources:
+
+  SqsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${StackFamily}-queue"
+      VisibilityTimeout: 30
+
+Outputs:
+  SqsQueue:
+    Value: !Ref SqsQueue
+    Export:
+      Name: !Sub "${StackFamily}-sqs-queue"
