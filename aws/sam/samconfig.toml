@@ -1,0 +1,11 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "ecs-blue-green-demo-sam"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-t16gilgky7zw"
+s3_prefix = "ecs-blue-green-demo-sam"
+region = "ap-northeast-1"
+profile = "yields"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
