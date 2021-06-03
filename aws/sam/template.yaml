@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  ecs-blue-green-demo-sam
+
+  SAM Template for ecs-blue-green-demo-sam
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+
+Parameters:
+  StackFamily:
+    Type: String
+    Default: ecs-blue-green-demo
+
+Resources:
+  FunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [lambda.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        -
+          PolicyName: handle-resources
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:*
+                  - events:*
+                Resource: '*'
+
+  StopAllFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: stop_all.lambda_handler
+      Runtime: python3.7
+      Role: !GetAtt FunctionRole.Arn
+      Environment:
+        Variables:
+          ECS_CLUSTER:
+            Fn::ImportValue:
+              !Sub "${StackFamily}-ecs-cluster"
+          ECS_APP_SERVICE: !Sub "${StackFamily}-app"
+          ECS_QUEUE_WORKER_SERVICE: !Sub "${StackFamily}-queue-worker"
+      Timeout: 300
+
+  StopAllLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${StopAllFunction}
+      RetentionInDays: 14
+
+  StartAllFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: start_all.lambda_handler
+      Runtime: python3.7
+      Role: !GetAtt FunctionRole.Arn
+      Environment:
+        Variables:
+          ECS_CLUSTER:
+            Fn::ImportValue:
+              !Sub "${StackFamily}-ecs-cluster"
+          ECS_APP_SERVICE: !Sub "${StackFamily}-app"
+          ECS_QUEUE_WORKER_SERVICE: !Sub "${StackFamily}-queue-worker"
+      Timeout: 300
+
+  StartAllLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${StartAllFunction}
+      RetentionInDays: 14
